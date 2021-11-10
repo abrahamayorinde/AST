@@ -83,19 +83,7 @@ class Interpreter(object):
        # print("Next space (last) position: " + str(self.pos))
                 
     def get_next_token(self):
-        number = ""
-        """Lexical analyzer (also known as scanner or tokenizer)
-
-        This method is responsible for breaking a sentence
-        apart into tokens. One token at a time.
-        """
-        #text = self.text
-        self.nextspace()
-        # is self.pos index past the end of the self.text ?
-        # if so, then return EOF token because there is no more
-        # input left to convert into tokens
-        if self.lastcharacter():
-            return Token(EOF, None)
+        while self.current_char is not None:
         
         # get a character at the position self.pos and decide
         # what token to create based on the single character
@@ -106,32 +94,31 @@ class Interpreter(object):
         # index to point to the next character after the digit,
         # and return the INTEGER token
         
-        number = self.getnumber()
-        if number.isdigit():
-            token = Token(INTEGER, number)
-            return token
+            if self.current_char.isdigit():
+                token = Token(INTEGER, self.getnumber())
+                return token
+                
+            if self.current_char == '+':
+                token = Token(PLUS, self.current_char)
+                self.nextchar()
+                return token
+                
+            if self.current_char == '-':
+                token = Token(MINUS, self.current_char)
+                self.nextchar()
+                return token
             
-        if self.current_char == '+':
-            token = Token(PLUS, self.current_char)
-            self.nextchar()
-            return token
-            
-        if self.current_char == '-':
-            token = Token(MINUS, self.current_char)
-            self.nextchar()
-            return token
-            
-        if self.current_char == '/':
-            token = Token(DIVIDE, self.current_char)
-            self.nextchar()
-            return token
+            if self.current_char == '/':
+                token = Token(DIVIDE, self.current_char)
+                self.nextchar()
+                return token
 
-        if self.current_char == '*':
-            token = Token(MULTIPLY, self.current_char)
-            self.nextchar()
-            return token
-            
-        #self.error()
+            if self.current_char == '*':
+                token = Token(MULTIPLY, self.current_char)
+                self.nextchar()
+                return token
+                
+            self.error()
         return Token(EOF, None)
 
         
@@ -144,42 +131,47 @@ class Interpreter(object):
             self.current_token = self.get_next_token()
         else:
             self.error()
-
+    
+    def term(self):
+        token = self.current_token
+        self.eat(INTEGER)
+        return token.value
+        
     def expr(self):
-        result = ""
+
         # set current token to the first token taken from the input
         self.current_token = self.get_next_token()
         
-        left = self.current_token
-        self.eat(left.type)
-        #print("Left element value:" + str(left.value))
+        result = self.term()
         
-        op = self.current_token
-        self.eat(op.type)
-        #print("Operator value: " + str(op.value))
-        
-        right = self.current_token
-        self.eat(right.type)
-        #print("Last right element: " + str(right.value))
-        
-        if (op.type == PLUS):
-            result = int(left.value) + int(right.value) # eval(left.value + op.value + right.value) #
-            
-        if (op.type == MINUS):
-            result = int(left.value) - int(right.value) # eval(left.value + op.value + right.value) #
-
-        if (op.type == DIVIDE):
-            if(right.value == '0'):
-                print("Divide by zero not allowed")
-                result = None
-            else:
-                result = int(left.value)/int(right.value)
+        while self.current_token.type in (PLUS, MINUS, DIVIDE, MULTIPLY):
+                token = self.current_token
                 
-        if (op.type == MULTIPLY):
-            result = int(left.value) * int(right.value) # eval(left.value + op.value + right.value) #
-        
+                if( token.type == PLUS):
+                    self.eat(token.type)
+                    print("Result value: " + result)
+                    
+                    result = float(result) + float(self.term())
+                
+                elif(token.type == MINUS):
+                    self.eat(token.type)
+                    result = float(result) - float(self.term())
+                    
+                elif (token.type == DIVIDE):
+                    self.eat(token.type)
+                    a = self.term()
+                    if(a == '0'):
+                        print("Divide by zero not allowed")
+                        result = None
+                    else:
+                        result = float(result)/float(a)
+                        
+                elif (token.type == MULTIPLY):
+                    self.eat(token.type)
+                    result = float(result) * float(self.term()) # eval(left.value + op.value + right.value) #
+                                    
         return result
-            
+                    
 def main():
     while True:
         try:
